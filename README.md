@@ -92,4 +92,3 @@ cp -r ./URDF_Exporter "$HOME/Library/Application Support/Autodesk/Autodesk Fusio
 * **Simulation**:
   - For Gazebo: `roslaunch <robot_name>_description gazebo.launch`
   - For RViz: `roslaunch <robot_name>_description display.launch`
-```
