@@ -65,7 +65,6 @@ class Link:
             'izz':str(self.inertia_tensor[2]), 'ixy':str(self.inertia_tensor[3]),\
             'iyz':str(self.inertia_tensor[4]), 'ixz':str(self.inertia_tensor[5])}       
         
-        
         # visual
         visual = SubElement(link, 'visual')
         origin_v = SubElement(visual, 'origin')
@@ -103,9 +102,11 @@ def make_inertial_dict(root, msg):
     inertial_dict = {}
     
     def format_float(value):
-        """Format float values with maximum precision"""
-        return "{:.15g}".format(value)
-    
+        """Format float values with maximum precision while preserving small values"""
+        if abs(value) < 1e-10 and value != 0:
+            return "{:.15e}".format(value)  # Scientific notation for very small values
+        return "{:.15g}".format(value)  # Maximum precision for larger values
+        
     for occs in allOccs:
         occs_dict = {}
         prop = occs.getPhysicalProperties(adsk.fusion.CalculationAccuracy.VeryHighCalculationAccuracy)
@@ -113,8 +114,8 @@ def make_inertial_dict(root, msg):
         occs_dict['name'] = re.sub('[ :()]', '_', occs.name)
 
         # Store both formatted string and original float values
-        mass = prop.mass  # kg
-        occs_dict['mass'] = format_float(mass)
+        mass = prop.mass  # kg (directly from Fusion, no conversion needed)
+        occs_dict['mass'] = format_float(mass)  # Already in kg, no scaling
         occs_dict['mass_float'] = mass
         
         # Convert mm to m for center of mass (1m = 1000mm)
