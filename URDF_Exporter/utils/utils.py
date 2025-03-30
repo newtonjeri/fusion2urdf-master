@@ -2,9 +2,11 @@
 """
 Created on Sun May 12 19:15:34 2019
 Modified on Sun Jan 17 2021
+Modified on Sun March 30 2025
 
 @author: syuntoku
 @author: spacemaster85
+@author: newtonjeri
 """
 
 import adsk
@@ -14,7 +16,7 @@ import os.path
 import re
 from xml.etree import ElementTree
 from xml.dom import minidom
-from distutils.dir_util import copy_tree
+import shutil
 import fileinput
 import sys
 
@@ -128,18 +130,16 @@ def file_dialog(ui):
         return folderDlg.folder
     return False
 
-
 def origin2center_of_mass(inertia, center_of_mass, mass):
     """
     convert the moment of the inertia about the world coordinate into
     that about center of mass coordinate
 
-
     Parameters
     ----------
     moment of inertia about the world coordinate:  [xx, yy, zz, xy, yz, xz]
     center_of_mass: [x, y, z]
-
+    mass: float
 
     Returns
     ----------
@@ -148,9 +148,23 @@ def origin2center_of_mass(inertia, center_of_mass, mass):
     x = center_of_mass[0]
     y = center_of_mass[1]
     z = center_of_mass[2]
-    translation_matrix = [y**2+z**2, x**2+z**2, x**2+y**2,
-                          -x*y, -y*z, -x*z]
-    return [round(i - mass*t, 6) for i, t in zip(inertia, translation_matrix)]
+    translation_matrix = [y**2 + z**2, x**2 + z**2, x**2 + y**2,
+                        -x*y, -y*z, -x*z]
+    
+    # Calculate without rounding first
+    result = [i - mass*t for i, t in zip(inertia, translation_matrix)]
+    
+    # Format with maximum precision while preserving small values
+    formatted_result = []
+    for val in result:
+        if abs(val) < 1e-10 and val != 0:
+            # Use scientific notation for very small values
+            formatted_result.append(float("{:.15e}".format(val)))
+        else:
+            # Use maximum precision for larger values
+            formatted_result.append(float("{:.15g}".format(val)))
+    
+    return formatted_result
 
 
 def prettify(elem):
@@ -179,7 +193,9 @@ def copy_package(save_dir, package_dir):
         os.mkdir(save_dir + '/urdf')
     except:
         pass
-    copy_tree(package_dir, save_dir)
+    # shutil.copytree(package_dir, save_dir)
+    shutil.copytree(package_dir, save_dir, dirs_exist_ok=True)
+
 
 
 def update_cmakelists(save_dir, package_name):
