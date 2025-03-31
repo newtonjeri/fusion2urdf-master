@@ -86,57 +86,38 @@ class Link:
         self.link_xml = "\n".join(utils.prettify(link).split("\n")[1:])
 
 def make_inertial_dict(root, msg):
-    """      
-    Parameters
-    ----------
-    root: adsk.fusion.Design.cast(product)
-        Root component
-    msg: str
-        Tell the status
-        
-    Returns
-    ----------
-    inertial_dict: {name:{mass, inertia, center_of_mass, mass_float, center_of_mass_float, inertia_float}}
-    """
     allOccs = root.occurrences
     inertial_dict = {}
     
     def format_float(value):
-        """Format float values with maximum precision while preserving small values"""
         if abs(value) < 1e-10 and value != 0:
-            return "{:.15e}".format(value)  # Scientific notation for very small values
-        return "{:.15g}".format(value)  # Maximum precision for larger values
+            return "{:.15e}".format(value)
+        return "{:.15g}".format(value)
         
     for occs in allOccs:
         occs_dict = {}
         prop = occs.getPhysicalProperties(adsk.fusion.CalculationAccuracy.VeryHighCalculationAccuracy)
         
         occs_dict['name'] = re.sub('[ :()]', '_', occs.name)
-
-        # Store both formatted string and original float values
-        mass = prop.mass  # kg (directly from Fusion, no conversion needed)
-        occs_dict['mass'] = format_float(mass)  # Already in kg, no scaling
+        mass = prop.mass  # kg
+        occs_dict['mass'] = format_float(mass)
         occs_dict['mass_float'] = mass
         
-        # Convert mm to m for center of mass (1m = 1000mm)
-        center_of_mass = [_/1000.0 for _ in prop.centerOfMass.asArray()]  # mm to m
+        # Convert mm to m for center of mass
+        center_of_mass = [_/100.0 for _ in prop.centerOfMass.asArray()]
         occs_dict['center_of_mass'] = [format_float(x) for x in center_of_mass]
         occs_dict['center_of_mass_float'] = center_of_mass
 
-        # Get moments of inertia
         (_, xx, yy, zz, xy, yz, xz) = prop.getXYZMomentsOfInertia()
-        # Convert kg/mm² to kg/m² (1m² = 1,000,000mm²)
-        moment_inertia_world = [xx/1000000.0, yy/1000000.0, zz/1000000.0,
-                              xy/1000000.0, yz/1000000.0, xz/1000000.0]
+        moment_inertia_world = [xx/1e4, yy/1e4, zz/1e4, xy/1e4, yz/1e4, xz/1e4]
+        moment_inertia_com = utils.origin2center_of_mass(
+                moment_inertia_world, 
+                center_of_mass, 
+                mass
+            )
         
-        # Convert to center of mass frame
-        inertia_com = utils.origin2center_of_mass(moment_inertia_world, 
-                                                center_of_mass, 
-                                                mass)
-        
-        # Store both formatted and float values
-        occs_dict['inertia'] = [format_float(x) for x in inertia_com]
-        occs_dict['inertia_float'] = inertia_com
+        occs_dict['inertia'] = [format_float(x) for x in moment_inertia_com]
+        occs_dict['inertia_float'] = moment_inertia_com
         
         if 'base_link' in occs.component.name:
             inertial_dict['base_link'] = occs_dict
