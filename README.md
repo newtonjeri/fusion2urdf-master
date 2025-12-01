@@ -90,5 +90,5 @@ cp -r ./URDF_Exporter "$HOME/Library/Application Support/Autodesk/Autodesk Fusio
   - Joint limits are properly handled
 
 * **Simulation**:
-  - For Gazebo: `roslaunch <robot_name>_description gazebo.launch`
-  - For RViz: `roslaunch <robot_name>_description display.launch`
+  - For Gazebo: `ros2 launch <robot_name>_description gazebo.launch`
+  - For RViz: `ros2 launch <robot_name>_description display.launch`
